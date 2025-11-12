@@ -1,5 +1,5 @@
 // ------------------------------
-// 🎯 INITIAL DATA
+// 🎯 INITIAL DATA (ค่าเริ่มต้น)
 // ------------------------------
 const SEED = [
   { name: "เข็มกลัด", start: 1520 },
@@ -36,7 +36,12 @@ const SEED = [
 
 let state = [];
 let currentDay = 1;
+
+// elements
 const body = document.getElementById("body");
+const saveHintEl = document.getElementById("saveHint");
+const lastUpdatedEl = document.getElementById("lastUpdated");
+const dayPills = document.getElementById("dayPills");
 
 // ------------------------------
 // 🧮 CALCULATIONS
@@ -85,90 +90,108 @@ function findItem(id) {
 
 // ------------------------------
 // 💾 SAVE TO FIREBASE
+// (ต้องมี window.DB_REF มาจากการ init Firebase ใน index.html)
 // ------------------------------
-// 💾 SAVE TO FIREBASE
 async function saveState() {
-  const el = document.getElementById("saveHint");
-  const timeEl = document.getElementById("lastUpdated");
-  el.textContent = "⏳ กำลังบันทึก...";
+  if (!window.DB_REF || typeof window.DB_REF.set !== "function") {
+    console.error("DB_REF ยังไม่ถูกกำหนด หรือไม่ได้ใช้ Realtime DB compat API");
+    toast("⚠️ ระบบบันทึกยังไม่พร้อม (DB)", true);
+    return;
+  }
+
+  saveHintEl.textContent = "⏳ กำลังบันทึก...";
   try {
     const now = new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
     await window.DB_REF.set({
       updatedAt: now,
       items: state
     });
-    el.textContent = "✓ บันทึกแล้ว (Firebase)";
-    el.classList.add("success");
-    timeEl.textContent = `อัปเดตล่าสุดเมื่อ: ${now}`;
+    saveHintEl.textContent = "✓ บันทึกแล้ว (Firebase)";
+    saveHintEl.classList.add("success");
+    if (lastUpdatedEl) lastUpdatedEl.textContent = `อัปเดตล่าสุดเมื่อ: ${now}`;
   } catch (err) {
     console.error("❌ Sync failed:", err);
-    el.textContent = "⚠️ บันทึกไม่สำเร็จ";
+    saveHintEl.textContent = "⚠️ บันทึกไม่สำเร็จ";
+    saveHintEl.classList.add("danger");
+  } finally {
+    setTimeout(() => {
+      saveHintEl.textContent = "";
+      saveHintEl.classList.remove("success", "danger");
+    }, 1500);
   }
-  setTimeout(() => {
-    el.textContent = "";
-    el.classList.remove("success");
-  }, 2000);
 }
 
-
 // ------------------------------
-// 🧠 LOAD FROM FIREBASE
+// 🧠 LOAD FROM FIREBASE (LIVE SYNC)
 // ------------------------------
-// 🧠 LOAD FROM FIREBASE
 function loadFromFirebase() {
+  if (!window.DB_REF || typeof window.DB_REF.on !== "function") {
+    console.error("DB_REF ยังไม่ถูกกำหนด หรือไม่ได้ใช้ Realtime DB compat API");
+    // fallback: ใช้ SEED
+    state = SEED.map((x) => ({ ...x }));
+    render();
+    return;
+  }
+
   window.DB_REF.on("value", (snapshot) => {
     const data = snapshot.val();
-    const timeEl = document.getElementById("lastUpdated");
 
     if (data && data.items) {
       state = data.items;
       render();
-      if (data.updatedAt) timeEl.textContent = `อัปเดตล่าสุดเมื่อ: ${data.updatedAt}`;
+      if (data.updatedAt && lastUpdatedEl) {
+        lastUpdatedEl.textContent = `อัปเดตล่าสุดเมื่อ: ${data.updatedAt}`;
+      }
       console.log("✅ Loaded data from Firebase");
     } else {
-      // ถ้าไม่มีข้อมูล ให้ใช้ SEED เริ่มต้น
+      // ถ้าไม่มี data ใน DB ให้ seed แล้วเซฟขึ้นไป
       state = SEED.map((x) => ({ ...x }));
-      saveState();
       render();
+      saveState();
       console.log("📦 Initialized with SEED data");
     }
   });
 }
 
-
 // ------------------------------
-// ⚙️ EVENT: TABLE BUTTONS
+// ⚙️ TABLE BUTTON ACTIONS
 // ------------------------------
 body.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-act]");
   if (!btn) return;
-  const id = +btn.dataset.id,
-    act = btn.dataset.act,
-    row = findItem(id);
+
+  const id = +btn.dataset.id;
+  const act = btn.dataset.act;
+  const row = findItem(id);
+  if (!row) return;
+
   const dayKey = ["d1", "d2", "d3"][currentDay - 1];
   const input = btn.parentElement.querySelector("input");
   const val = input?.value ? +input.value : 0;
   const { remain } = calcRow(row);
 
-  if (act === "plus1" && remain > 0) row[dayKey]++;
-  else if (act === "minus1" && row[dayKey] > 0) row[dayKey]--;
-  else if (act === "bulkMinus" && val > 0) {
+  if (act === "plus1" && remain > 0) {
+    row[dayKey]++;
+  } else if (act === "minus1" && row[dayKey] > 0) {
+    row[dayKey]--;
+  } else if (act === "bulkMinus" && val > 0) {
     row[dayKey] = Math.max((row[dayKey] || 0) - val, 0);
-    input.value = "";
+    if (input) input.value = "";
   } else if (act === "bulkPlus" && val > 0) {
     if (remain <= 0) return;
     row[dayKey] = (row[dayKey] || 0) + Math.min(val, remain);
-    input.value = "";
+    if (input) input.value = "";
+  } else {
+    return;
   }
 
-  saveState();
   render();
+  saveState();
 });
 
 // ------------------------------
 // 📅 CHANGE DAY
 // ------------------------------
-const dayPills = document.getElementById("dayPills");
 function markDay() {
   [...dayPills.querySelectorAll(".pill")].forEach((b) =>
     b.classList.toggle("active", +b.dataset.day === currentDay)
@@ -180,6 +203,56 @@ dayPills.addEventListener("click", (e) => {
   currentDay = +b.dataset.day;
   markDay();
 });
+
+// ------------------------------
+// ⬇️ EXPORT CSV
+// ------------------------------
+function exportCSV() {
+  const header = ["ชื่อของรางวัล", "เริ่มต้น", "วัน1", "วัน2", "วัน3", "แจกรวม", "คงเหลือ"];
+  const rows = state.map((it) => {
+    const { total, remain } = calcRow(it);
+    return [it.name, it.start, it.d1, it.d2, it.d3, total, remain];
+  });
+  const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `gift-oph-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ------------------------------
+// 🔄 RESET TO DEFAULT
+// ------------------------------
+async function resetToDefault() {
+  if (!confirm("⚠️ ต้องการรีเซ็ตข้อมูลกลับค่าเริ่มต้นจริงหรือไม่?")) return;
+  state = SEED.map((x) => ({ ...x }));
+  render();
+  await saveState();
+  alert("✅ รีเซ็ตสำเร็จแล้ว!");
+}
+
+// ------------------------------
+// 🔘 WIRE UP BUTTONS
+// ------------------------------
+document.getElementById("saveBtn").addEventListener("click", saveState);
+document.getElementById("exportBtn").addEventListener("click", exportCSV);
+document.getElementById("resetBtn").addEventListener("click", resetToDefault);
+
+// ------------------------------
+// 🧁 SMALL TOAST (optional)
+// ------------------------------
+function toast(msg, isError = false) {
+  saveHintEl.textContent = msg;
+  saveHintEl.classList.toggle("danger", isError);
+  saveHintEl.classList.toggle("success", !isError);
+  setTimeout(() => {
+    saveHintEl.textContent = "";
+    saveHintEl.classList.remove("danger", "success");
+  }, 1500);
+}
 
 // ------------------------------
 // 🚀 INIT
