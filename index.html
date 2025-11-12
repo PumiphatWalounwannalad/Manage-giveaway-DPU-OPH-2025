@@ -2,8 +2,8 @@
 <html lang="th">
   <head>
     <meta charset="utf-8" />
-    <title>ตัวจัดการของรางวัล 3 วัน</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ตัวจัดการของรางวัล 3 วัน</title>
     <link rel="stylesheet" href="style.css" />
   </head>
 
@@ -15,8 +15,8 @@
       </div>
     </header>
 
-    <div class="container">
-      <div class="card">
+    <main class="container">
+      <section class="card">
         <div class="toolbar">
           <span class="muted">วันปัจจุบัน:</span>
           <div id="dayPills">
@@ -24,17 +24,19 @@
             <button class="pill" data-day="2">วันที&nbsp;2</button>
             <button class="pill" data-day="3">วันที&nbsp;3</button>
           </div>
+
           <span class="muted">|</span>
           <button id="saveBtn" class="btn-accent">บันทึกตอนนี้</button>
           <button id="exportBtn">ส่งออก CSV</button>
           <button id="importBtn">นำเข้า CSV</button>
-          <input type="file" id="importFile" accept=".csv" style="display:none">
+          <input type="file" id="importFile" accept=".csv" style="display: none" />
           <button id="resetBtn" class="btn-warn">รีเซ็ตกลับค่าเริ่มต้น</button>
           <span class="muted" id="saveHint"></span>
+          <span class="muted" id="lastUpdated"></span>
         </div>
 
         <div class="wrap">
-          <table id="tbl">
+          <table id="tbl" aria-describedby="saveHint">
             <thead>
               <tr>
                 <th class="name" scope="col" title="ชื่อของรางวัล">ชื่อของรางวัล</th>
@@ -54,9 +56,31 @@
         <div class="foot">
           <span class="tag">✓ บันทึกอัตโนมัติทุกครั้งที่แก้ไข</span>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
 
+    <!-- Firebase (สำหรับเว็บ static / GitHub Pages) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+    <script>
+      // ตั้งค่า Firebase ของโปรเจกต์เธอ
+      const firebaseConfig = {
+        apiKey: "AIzaSyBIpSGwHMPOBKk4oFtfjJo5WtEFGS1rOmE",
+        authDomain: "gift-manage-dpu-oph.firebaseapp.com",
+        databaseURL: "https://gift-manage-dpu-oph-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "gift-manage-dpu-oph",
+        storageBucket: "gift-manage-dpu-oph.firebasestorage.app",
+        messagingSenderId: "289488711879",
+        appId: "1:289488711879:web:01253e63cf7c4012034ee2",
+        measurementId: "G-5FQJ5VX43P"
+      };
+
+      // เริ่มต้น Firebase
+      firebase.initializeApp(firebaseConfig);
+
+      // สร้างตัวอ้างอิงไปยัง Realtime Database (path oph2025/inventory)
+      window.DB_REF = firebase.database().ref("oph2025/inventory");
+    </script>
     <script src="script.js"></script>
   </body>
 </html>
