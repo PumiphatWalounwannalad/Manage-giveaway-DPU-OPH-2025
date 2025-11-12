@@ -350,5 +350,5 @@ async function loadFromSheet() {
 
 window.addEventListener("DOMContentLoaded", loadFromSheet);
 
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw1bSTZAbLIIBqfY1ke6QjM9tOBhhowi4zwToveTrGtSW6X-vMJvS9ygLAyRxZzsmJTsg/exec" ;
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzd335zd0rsbzLkB2DaYSrtC77boVVRoDgMFhuyVT-UOujYMk5NoiS5TgIzzohU09V4eQ/exec" ;
 
