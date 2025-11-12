@@ -98,16 +98,51 @@ body.addEventListener("click", (e) => {
   render();
 });
 
-function saveState() {
+async function saveState() {
   localStorage.setItem(KEY, JSON.stringify(state));
   const el = document.getElementById("saveHint");
-  el.textContent = "✓ บันทึกแล้ว";
-  el.classList.add("success");
-  setTimeout(() => {
-    el.textContent = "";
-    el.classList.remove("success");
-  }, 1000);
+  el.textContent = "⏳ กำลังบันทึก...";
+  el.classList.add("saving");
+
+  try {
+    // คำนวณ total / remain ก่อนส่งขึ้นชีต
+    const rows = state.map((it) => {
+      const { total, remain } = calcRow(it);
+      return {
+        name: it.name,
+        start: it.start,
+        d1: it.d1,
+        d2: it.d2,
+        d3: it.d3,
+        total,
+        remain,
+      };
+    });
+
+    // ส่งข้อมูลทั้งหมดไปยัง Google Apps Script
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rows),
+    });
+
+    const result = await res.json();
+    console.log("✅ Synced to Google Sheet:", result);
+
+    el.textContent = "✅ บันทึกและซิงก์สำเร็จ!";
+    el.classList.remove("saving");
+    el.classList.add("success");
+    setTimeout(() => {
+      el.textContent = "";
+      el.classList.remove("success");
+    }, 1200);
+  } catch (err) {
+    console.error("❌ Sync failed:", err);
+    el.textContent = "⚠️ บันทึกไม่สำเร็จ (ตรวจ API URL)";
+    el.classList.remove("saving");
+  }
 }
+
 
 const dayPills = document.getElementById("dayPills");
 function markDay() {
@@ -276,3 +311,44 @@ importFile.addEventListener("change", (e) => {
   // also recreate observer when header/table sizes change
   window.addEventListener('resize', ()=>{ updateHeaderHeight(); setupSentinelObserver(); });
   window.addEventListener('load', ()=>{ updateHeaderHeight(); setupSentinelObserver(); });
+
+  // --- Google Sheets Integration ---
+const SHEET_ID = "1s_CBpE216lMswcGtEUl-qu0u958naypYod6NZ2ne1YE";
+const API_KEY = "AIzaSyDE_O3jXQNPSXmnA51zKJ4KXGtM7D_PGZ0";
+const RANGE = "ชีต1";
+
+async function loadFromSheet() {
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`
+    );
+    const data = await res.json();
+    if (!data.values || data.values.length <= 1) {
+      console.warn("No data rows found in sheet");
+      return;
+    }
+
+    // แปลงข้อมูลจาก Google Sheet เป็น state ที่เว็บใช้
+    const headers = data.values[0];
+    const rows = data.values.slice(1).map((row, i) => ({
+      id: i + 1,
+      name: row[0] || "",
+      start: Number(row[1] || 0),
+      d1: Number(row[2] || 0),
+      d2: Number(row[3] || 0),
+      d3: Number(row[4] || 0),
+    }));
+
+    state = rows;
+    saveState();
+    render();
+    console.log("✅ Loaded data from Google Sheets");
+  } catch (err) {
+    console.error("❌ Error loading from Google Sheets:", err);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", loadFromSheet);
+
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw1bSTZAbLIIBqfY1ke6QjM9tOBhhowi4zwToveTrGtSW6X-vMJvS9ygLAyRxZzsmJTsg/exec" ;
+
