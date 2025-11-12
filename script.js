@@ -208,7 +208,7 @@ dayPills.addEventListener("click", (e) => {
 // ⬇️ EXPORT CSV
 // ------------------------------
 function exportCSV() {
-  const header = ["ชื่อของรางวัล", "เริ่มต้น", "วัน1", "วัน2", "วัน3", "แจกรวม", "คงเหลือ"];
+  const header = ["ชื่อของรางวัล", "เริ่มต้น", "วันที่1", "วันที่2", "วันที่3", "แจกรวม", "คงเหลือ"];
   const rows = state.map((it) => {
     const { total, remain } = calcRow(it);
     return [it.name, it.start, it.d1, it.d2, it.d3, total, remain];
@@ -258,6 +258,29 @@ function toast(msg, isError = false) {
 // 🚀 INIT
 // ------------------------------
 window.addEventListener("DOMContentLoaded", () => {
+
+  const autoDayInfo = document.getElementById("autoDayInfo");
+
+  // --- เลือกวันที่จริงอัตโนมัติ ---
+  const today = new Date();
+  const d = today.getDate();
+  const m = today.getMonth() + 1; // JS: 0 = January
+
+  let autoDay = 1;
+
+  if (m === 11) { // เดือนพฤศจิกายน
+    if (d === 13) autoDay = 1;
+    else if (d === 14) autoDay = 2;
+    else if (d === 15) autoDay = 3;
+    else autoDay = 1;
+  }
+
+  currentDay = autoDay;
   markDay();
+
+  // แสดงข้อความว่าระบบเลือกวันไหนให้
+  autoDayInfo.textContent = `วันนี้คือ: วันที่ ${autoDay} (เลือกอัตโนมัติ)`;
+
   loadFromFirebase();
 });
+
