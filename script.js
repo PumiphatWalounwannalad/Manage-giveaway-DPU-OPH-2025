@@ -3,8 +3,11 @@
 // ------------------------------
 const SEED = [
   { name: "เข็มกลัด", start: 1520 },
-  { name: "ปากกา", start: 412 },
-  { name: "สติ๊กเกอร์", start: 400 },
+  { name: "สติ๊กเกอร์", start: 1400 },
+  { name: "ปากกา", start: 1242 },
+  { name: "พวงกุญแจ", start: 1200 },
+  { name: "บัตรกำนัล SF", start: 0 },
+  { name: "บัตรส่วนลด 15%", start: 0 },
   { name: "Bingo Jumbo", start: 24 },
   { name: "ซุปเปอร์เศรษฐี", start: 21 },
   { name: "แบทเทิลรีเจ้น", start: 20 },
@@ -48,9 +51,13 @@ const dayPills = document.getElementById("dayPills");
 // ------------------------------
 function calcRow(item) {
   const total = (item.d1 || 0) + (item.d2 || 0) + (item.d3 || 0);
-  const remain = Math.max(item.start - total, 0);
+
+  // ถ้าสตาร์ทเป็น 0 ให้ remain = "-" (ไม่รู้จำนวนจริง)
+  const remain = item.start === 0 ? "-" : Math.max(item.start - total, 0);
+
   return { total, remain };
 }
+
 
 // ------------------------------
 // 🖼️ RENDER TABLE
@@ -70,6 +77,7 @@ function render() {
       <td class="qty">${remain}</td>
       <td>
         <div class="row-controls">
+          <button class="mini edit" data-act="edit" data-id="${item.id}">✏️</button>
           <button class="mini green" data-act="plus1" data-id="${item.id}">+1</button>
           <button class="mini red" data-act="minus1" data-id="${item.id}">−1</button>
           <input class="num-in" type="number" placeholder="จำนวน"/>
@@ -80,6 +88,7 @@ function render() {
     body.appendChild(tr);
   });
 }
+
 
 // ------------------------------
 // 🔍 FIND ITEM
@@ -170,24 +179,50 @@ body.addEventListener("click", (e) => {
   const val = input?.value ? +input.value : 0;
   const { remain } = calcRow(row);
 
-  if (act === "plus1" && remain > 0) {
-    row[dayKey]++;
-  } else if (act === "minus1" && row[dayKey] > 0) {
+  // ✏️ EDIT MODE
+  if (act === "edit") {
+    const newName = prompt("แก้ไขชื่อของรางวัล:", row.name);
+    if (!newName || !newName.trim()) return;
+
+    const newStartStr = prompt("แก้ไขจำนวนเริ่มต้น:", row.start);
+    const newStart = Number(newStartStr);
+    if (isNaN(newStart) || newStart < 0)
+      return alert("จำนวนเริ่มต้นไม่ถูกต้อง");
+
+    row.name = newName.trim();
+    row.start = newStart;
+
+    render();
+    saveState();
+    return;
+  }
+
+  // +1
+  if (act === "plus1") {
+    row[dayKey]++; 
+  }
+  // -1
+  else if (act === "minus1" && row[dayKey] > 0) {
     row[dayKey]--;
-  } else if (act === "bulkMinus" && val > 0) {
+  }
+  // + หลาย
+  else if (act === "bulkPlus" && val > 0) {
+    row[dayKey] += val;
+    input.value = "";
+  }
+  // - หลาย
+  else if (act === "bulkMinus" && val > 0) {
     row[dayKey] = Math.max((row[dayKey] || 0) - val, 0);
-    if (input) input.value = "";
-  } else if (act === "bulkPlus" && val > 0) {
-    if (remain <= 0) return;
-    row[dayKey] = (row[dayKey] || 0) + Math.min(val, remain);
-    if (input) input.value = "";
-  } else {
+    input.value = "";
+  }
+  else {
     return;
   }
 
   render();
   saveState();
 });
+
 
 // ------------------------------
 // 📅 CHANGE DAY
@@ -284,3 +319,28 @@ window.addEventListener("DOMContentLoaded", () => {
   loadFromFirebase();
 });
 
+// ------------------------------
+// ➕ ADD NEW ITEM
+// ------------------------------
+document.getElementById("addNewBtn").addEventListener("click", () => {
+  const name = prompt("🎁 ชื่อของรางวัลใหม่:");
+  if (!name || !name.trim()) return;
+
+  const startStr = prompt("จำนวนเริ่มต้น (ถ้าไม่รู้ให้ใส่ 0):");
+  const start = Number(startStr);
+  if (isNaN(start) || start < 0) return alert("จำนวนเริ่มต้นไม่ถูกต้อง");
+
+  // เพิ่มเข้า state
+  const newItem = {
+    id: state.length ? Math.max(...state.map(x => x.id)) + 1 : 1,
+    name: name.trim(),
+    start: start,
+    d1: 0,
+    d2: 0,
+    d3: 0,
+  };
+
+  state.push(newItem);
+  render();
+  saveState();
+});
