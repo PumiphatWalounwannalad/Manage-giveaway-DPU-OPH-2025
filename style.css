@@ -206,3 +206,20 @@ tbody tr:first-child td {
 @media (max-width: 840px){
   .name { min-width: 120px; }
 }
+
+/* ปุ่มเพิ่มของรางวัล — สีเทาแบบค่าเริ่มต้น */
+#addItemBtn {
+  background-color: #e0e0e0 !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: 0.15s;
+}
+
+#addItemBtn:hover {
+  background-color: #d5d5d5 !important;
+  border-color: #bfbfbf !important;
+}
+
