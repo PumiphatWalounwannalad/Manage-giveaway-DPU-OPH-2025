@@ -200,7 +200,7 @@ body.addEventListener("click", (e) => {
 
   // 🗑️ DELETE ITEM
   if (act === "delete") {
-    if (confirm(`ลบ "${row.name}" ออกจากรายการ?`)) {
+    if (confirm(`🗑 ลบ "${row.name}" ออกจากรายการ?`)) {
       state = state.filter(x => x.id !== id);
       render();
       saveState();
