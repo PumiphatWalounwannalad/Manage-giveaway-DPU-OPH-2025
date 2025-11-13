@@ -83,6 +83,7 @@ function render() {
           <input class="num-in" type="number" placeholder="จำนวน"/>
           <button class="mini green" data-act="bulkPlus" data-id="${item.id}">+ หลาย</button>
           <button class="mini red" data-act="bulkMinus" data-id="${item.id}">− หลาย</button>
+          <button class="mini red" data-act="delete" data-id="${item.id}">ลบ</button>
         </div>
       </td>`;
     body.appendChild(tr);
@@ -194,6 +195,16 @@ body.addEventListener("click", (e) => {
 
     render();
     saveState();
+    return;
+  }
+
+  // 🗑️ DELETE ITEM
+  if (act === "delete") {
+    if (confirm(`ลบ "${row.name}" ออกจากรายการ?`)) {
+      state = state.filter(x => x.id !== id);
+      render();
+      saveState();
+    }
     return;
   }
 
