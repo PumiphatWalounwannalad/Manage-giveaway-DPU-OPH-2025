@@ -64,8 +64,25 @@ function calcRow(item) {
 // ------------------------------
 function render() {
   body.innerHTML = "";
+
+  // totals
+  let sumStart = 0,
+    sumD1 = 0,
+    sumD2 = 0,
+    sumD3 = 0,
+    sumTotal = 0,
+    sumRemain = 0;
+
   state.forEach((item) => {
     const { total, remain } = calcRow(item);
+
+    sumStart += Number(item.start || 0);
+    sumD1 += Number(item.d1 || 0);
+    sumD2 += Number(item.d2 || 0);
+    sumD3 += Number(item.d3 || 0);
+    sumTotal += Number(total || 0);
+    if (typeof remain === "number") sumRemain += Number(remain);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="name">${item.name}</td>
@@ -88,6 +105,23 @@ function render() {
       </td>`;
     body.appendChild(tr);
   });
+
+  // render summary/footer row
+  const tfoot = document.getElementById("summary");
+  if (tfoot) {
+    tfoot.innerHTML = `
+      <tr class="summary-row">
+        <td class="name">รวม</td>
+        <td class="qty">${sumStart}</td>
+        <td class="qty">${sumD1}</td>
+        <td class="qty">${sumD2}</td>
+        <td class="qty">${sumD3}</td>
+        <td class="qty">${sumTotal}</td>
+        <td class="qty">${sumRemain}</td>
+        <td class="tight"></td>
+      </tr>
+    `;
+  }
 }
 
 
